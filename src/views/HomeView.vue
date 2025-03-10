@@ -3,7 +3,7 @@
     <!-- Hero Section -->
     <section class="hero">
       <div class="hero-content">
-        <h1>Welcome to Savoria</h1>
+        <h1>Welcome to Restaurant Island</h1>
         <p>Experience culinary excellence in every bite</p>
         <button class="cta-button">Book a Table</button>
       </div>
