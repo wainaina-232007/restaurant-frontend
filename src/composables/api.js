@@ -1,115 +1,110 @@
-// api.service.js
-import axios from 'axios';
-import router from '../router/index';
-import TokenService from '../services/AuthService';
+// src/composables/api.js
+import { ref } from 'vue';
 
-// Create axios instance with default config
-const ApiService = {
-  // The base axios instance
-  _api: axios.create({
-    baseURL: process.env.VUE_APP_API_URL || "http://localhost:8000/api/",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    },
-    timeout: 15000 // 15 second timeout
-  }),
+export function useApi() {
+  const loading = ref(false);
+  const error = ref(null);
+  const data = ref(null);
 
-  // Initialize the service
-  init() {
-    // Request interceptor for auth token
-    this._api.interceptors.request.use(
-      (config) => {
-        const token = TokenService.getToken();
-        if (token) {
-          config.headers["Authorization"] = 'Bearer ' + token;
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
+  // Laravel API base URL - adjust this to match your setup
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+  /**
+   * Make an API request with support for JSON and multipart form data
+   * 
+   * @param {string} endpoint - The API endpoint (without base URL)
+   * @param {string} method - HTTP method (GET, POST, PUT, DELETE, etc.)
+   * @param {Object|FormData} payload - Request data (object for JSON, FormData for multipart)
+   * @param {boolean} isMultipart - Whether this is a multipart/form-data request (for file uploads)
+   * @param {Object} customHeaders - Additional headers to include
+   * @returns {Promise} - Promise containing the response data
+   */
+  const makeRequest = async (endpoint, method = 'GET', payload = null, isMultipart = false, customHeaders = {}) => {
+    loading.value = true;
+    error.value = null;
+    data.value = null;
+
+    // Make sure endpoint starts with a slash
+    const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${apiBaseUrl}${formattedEndpoint}`;
+
+    try {
+      // Prepare headers based on content type
+      const headers = {
+        'Accept': 'application/json',
+        ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
+        ...customHeaders
+      };
+
+      // Add auth token if available
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
-    );
 
-    // Response interceptor for error handling
-    this._api.interceptors.response.use(
-      (response) => {
-        return response;
-      },
-      (error) => {
-        // Handle authentication errors
-        if (error.response) {
-          const { status } = error.response;
-          
-          if (status === 401) {
-            // Unauthorized - clear token and redirect to login
-            TokenService.removeToken();
-            router.push({ name: 'Login' });
-          } else if (status === 403) {
-            // Forbidden - user doesn't have permission
-            router.push({ name: 'Forbidden' });
-          } else if (status === 404) {
-            // Not found
-            router.push({ name: 'NotFound' });
-          } else if (status >= 500) {
-            // Server error - could show a toast notification here
-            console.error('Server error:', error.response.data);
-          }
-        } else if (error.request) {
-          // Request was made but no response (network error)
-          console.error('Network error:', error.request);
+      // Configure request options
+      const options = {
+        method,
+        headers,
+        credentials: 'include', // Include cookies for sessions if needed
+      };
+
+      // Add body data if not a GET request
+      if (method !== 'GET' && payload) {
+        if (isMultipart) {
+          // For multipart/form-data, use FormData directly
+          options.body = payload; // payload should be FormData
         } else {
-          // Something else happened while setting up the request
-          console.error('Error:', error.message);
+          // For JSON, stringify the payload
+          options.body = JSON.stringify(payload);
         }
-        
-        return Promise.reject(error);
       }
-    );
-  },
 
-  // Standard REST methods
-  get(resource, params) {
-    return this._api.get(resource, { params });
-  },
+      const response = await fetch(url, options);
+      
+      // Check if the response has content before parsing as JSON
+      const text = await response.text();
+      const responseData = text ? JSON.parse(text) : {};
+      
+      if (!response.ok) {
+        throw {
+          status: response.status,
+          data: responseData,
+          message: responseData.message || 'Request failed'
+        };
+      }
+      
+      data.value = responseData;
+      return responseData;
+    } catch (err) {
+      console.error('API request error:', err);
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
 
-  post(resource, data) {
-    return this._api.post(resource, data);
-  },
+  /**
+   * Helper for JSON requests
+   */
+  const jsonRequest = (endpoint, method, data, customHeaders = {}) => {
+    return makeRequest(endpoint, method, data, false, customHeaders);
+  };
 
-  put(resource, data) {
-    return this._api.put(resource, data);
-  },
+  /**
+   * Helper for multipart requests (file uploads)
+   */
+  const multipartRequest = (endpoint, method, formData, customHeaders = {}) => {
+    return makeRequest(endpoint, method, formData, true, customHeaders);
+  };
 
-  delete(resource) {
-    return this._api.delete(resource);
-  },
-
-  patch(resource, data) {
-    return this._api.patch(resource, data);
-  },
-
-  // Custom methods
-  upload(resource, file, onUploadProgress) {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    return this._api.post(resource, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-      onUploadProgress
-    });
-  },
-
-  // Method for custom requests
-  customRequest(config) {
-    return this._api(config);
-  }
-};
-
-// Initialize the service
-ApiService.init();
-
-export default ApiService;
+  return {
+    loading,
+    error,
+    data,
+    makeRequest,
+    jsonRequest,
+    multipartRequest
+  };
+}
