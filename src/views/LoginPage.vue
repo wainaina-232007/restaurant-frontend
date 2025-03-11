@@ -1,188 +1,152 @@
 <template>
-    <v-main>
-      <v-row justify="center" align="center" class="login-container">
+  <v-main>
+    <v-container fluid fill-height class="login-background">
+      <v-row justify="center">
         <v-col cols="12" sm="8" md="6" lg="4">
-          <v-card class="pa-4 elevation-6">
-            <v-card-title class="text-center text-h4 teal--text text--darken-2 pt-4 pb-2">
-              Welcome Back
-            </v-card-title>
-            <v-card-subtitle class="text-center pb-4">
-              Sign in to your Restaurant-Island account
-            </v-card-subtitle>
-  
-            <v-card-text>
-              <v-form ref="loginForm" v-model="valid" lazy-validation @submit.prevent="handleLogin">
-                <v-text-field
-                  v-model="email"
-                  :rules="emailRules"
-                  label="Email"
-                  prepend-inner-icon="mdi-email"
-                  required
-                  variant="outlined"
-                  class="mb-4"
-                ></v-text-field>
-  
-                <v-text-field
-                  v-model="password"
-                  :rules="passwordRules"
-                  :type="showPassword ? 'text' : 'password'"
-                  label="Password"
-                  prepend-inner-icon="mdi-lock"
-                  :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                  @click:append-inner="showPassword = !showPassword"
-                  required
-                  variant="outlined"
-                  class="mb-2"
-                ></v-text-field>
-  
-                <!-- Display error message if any -->
-                <v-alert
-                  v-if="errorMessage"
-                  type="error"
-                  class="mb-4"
-                  density="compact"
-                  variant="tonal"
-                >
-                  {{ errorMessage }}
-                </v-alert>
-  
-                <div class="d-flex justify-space-between mb-6">
-                  <v-checkbox
-                    v-model="rememberMe"
-                    label="Remember me"
-                    color="teal darken-1"
-                    hide-details
-                  ></v-checkbox>
-                  <v-btn
-                    variant="text"
-                    color="teal darken-1"
-                    class="text-caption"
-                    to="/forgot-password"
+          <v-card elevation="10" class="pa-6 rounded-lg">
+            <v-form @submit.prevent="login" ref="form">
+              <div class="text-center mb-6">
+                <h1 class="text-h4 font-weight-bold teal--text text--darken-2">Welcome Back</h1>
+                <p class="text-subtitle-1 mt-2">Log in to your Restaurant Island account</p>
+              </div>
+
+              <v-alert v-if="errorMessage" type="error" class="mb-4">{{ errorMessage }}</v-alert>
+
+              <v-text-field
+                v-model="email"
+                label="Email"
+                prepend-inner-icon="mdi-email"
+                :rules="[
+                  (v) => !!v || 'Email is required',
+                  (v) => /.+@.+\..+/.test(v) || 'Email must be valid',
+                ]"
+                required
+                outlined
+                dense
+              ></v-text-field>
+
+              <v-text-field
+                v-model="password"
+                label="Password"
+                prepend-inner-icon="mdi-lock"
+                :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
+                :type="showPassword ? 'text' : 'password'"
+                @click:append="showPassword = !showPassword"
+                :rules="[(v) => !!v || 'Password is required']"
+                required
+                outlined
+                dense
+              ></v-text-field>
+
+              <div class="d-flex justify-space-between align-center mb-2">
+                <v-checkbox
+                  v-model="rememberMe"
+                  label="Remember me"
+                  color="teal darken-2"
+                  hide-details
+                  dense
+                ></v-checkbox>
+                <a href="#" class="teal--text text--darken-2 text-body-2">Forgot password?</a>
+              </div>
+
+              <v-btn
+                block
+                color="teal darken-2"
+                dark
+                class="mt-4"
+                large
+                type="submit"
+                :loading="loading"
+              >
+                Log In
+              </v-btn>
+
+              <div class="text-center mt-6">
+                <p>
+                  Don't have an account?
+                  <router-link to="/signup" class="teal--text text--darken-2 font-weight-medium"
+                    >Sign Up</router-link
                   >
-                    Forgot Password?
-                  </v-btn>
-                </div>
-  
-                <v-btn
-                  type="submit"
-                  block
-                  size="large"
-                  color="teal darken-1"
-                  :disabled="!valid || loading"
-                  :loading="loading"
-                  class="white--text"
-                >
-                  Sign In
-                </v-btn>
-  
-                <div class="mt-6 text-center">
-                  <span class="text-body-2">Don't have an account? </span>
-                  <v-btn variant="text" color="teal darken-1" to="/register" class="text-none px-1">
-                    Sign Up
-                  </v-btn>
-                </div>
-              </v-form>
-            </v-card-text>
-  
-            <v-divider class="my-3"></v-divider>
-  
-            <v-card-text class="text-center">
-              <p class="text-caption text-medium-emphasis mb-2">Or continue with</p>
-              <v-row justify="center" class="px-4">
-                <v-col cols="auto">
-                  <v-btn icon color="blue darken-3">
-                    <v-icon>mdi-facebook</v-icon>
-                  </v-btn>
-                </v-col>
-                <v-col cols="auto">
-                  <v-btn icon color="red darken-1">
-                    <v-icon>mdi-google</v-icon>
-                  </v-btn>
-                </v-col>
-                <v-col cols="auto">
-                  <v-btn icon color="black">
-                    <v-icon>mdi-apple</v-icon>
-                  </v-btn>
-                </v-col>
-              </v-row>
-            </v-card-text>
+                </p>
+              </div>
+            </v-form>
           </v-card>
         </v-col>
       </v-row>
-    </v-main>
-  </template>
-  
-  <script setup>
-  import { ref } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { useAuth } from '../services/AuthService'
-  import { useApi } from '../composables/api'
-  
-  const router = useRouter()
-  const auth = useAuth()
-  const { loading, error, jsonRequest } = useApi()
-  
-  // Form state
-  const valid = ref(false)
-  const loginForm = ref(null)
-  const email = ref('')
-  const password = ref('')
-  const rememberMe = ref(false)
-  const showPassword = ref(false)
-  const errorMessage = ref('')
-  
-  // Validation rules
-  const emailRules = [
-    (v) => !!v || 'Email is required',
-    (v) => /.+@.+\..+/.test(v) || 'Email must be valid',
-  ]
-  
-  const passwordRules = [
-    (v) => !!v || 'Password is required',
-    (v) => v.length >= 6 || 'Password must be at least 6 characters',
-  ]
-  
-  // Form submission handler
-  const handleLogin = async () => {
-    if (!loginForm.value.validate()) return
-  
-    errorMessage.value = ''
-  
-    try {
-      // Use the jsonRequest method with correct Laravel endpoint
-      const response = await jsonRequest('login', 'POST', { 
-        email: email.value,
-        password: password.value 
-      })
-  
-      // Store the token and user data
-      localStorage.setItem('auth_token', response.token)
-      auth.login(response.token, response.user)
-  
-      // If remember me is checked, store in localStorage
-      if (rememberMe.value) {
-        localStorage.setItem('remember_user', 'true')
-      }
-  
-      // Redirect to dashboard or home page
-      router.push('/welcome')
-    } catch (err) {
-      console.error('Login error:', err)
-      if (err.data && err.data.message) {
-        errorMessage.value = err.data.message
-      } else if (err.message) {
-        errorMessage.value = err.message
+    </v-container>
+  </v-main>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { useAuth } from '../services/token.service'
+
+const router = useRouter()
+const { setAuth } = useAuth()
+
+const form = ref(null)
+const email = ref('')
+const password = ref('')
+const showPassword = ref(false)
+const rememberMe = ref(false)
+const loading = ref(false)
+const errorMessage = ref('')
+
+// Define the API base URL - adjust this as needed
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+
+const login = async () => {
+  const isValid = form.value.validate()
+
+  if (!isValid) return
+
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    // Updated endpoint path - adjust based on your actual Laravel routes
+    const response = await axios.post(`${API_URL}/login`, {
+      email: email.value,
+      password: password.value,
+    })
+
+    // Store token in localStorage
+    localStorage.setItem('auth-token', response.data.token)
+
+    // Store user info in localStorage or state management
+    localStorage.setItem('user', JSON.stringify(response.data.user))
+
+    // Update auth state
+    setAuth(true, response.data.user, response.data.abilities)
+
+    // Navigate to welcome page
+    router.push('/welcome')
+  } catch (error) {
+    console.error('Login error:', error)
+
+    if (error.response) {
+      if (error.response.data.errors) {
+        const errors = error.response.data.errors
+        errorMessage.value = errors.email?.[0] || 'Invalid login credentials'
       } else {
-        errorMessage.value = 'Login failed. Please try again.'
+        errorMessage.value = error.response.data.message || 'Login failed. Please try again.'
       }
+    } else if (error.request) {
+      errorMessage.value = 'No response from server. Please check your connection or server status.'
+    } else {
+      errorMessage.value = 'Network error. Please check your connection.'
     }
+  } finally {
+    loading.value = false
   }
-  </script>
-  
-  <style scoped>
-  .login-container {
-    min-height: calc(100vh - 64px);
-    display: flex;
-    align-items: center;
-  }
-  </style>
+}
+</script>
+
+<style scoped>
+.login-background {
+  background: linear-gradient(to right, #e0f2f1, #b2dfdb);
+  min-height: 100vh;
+}
+</style>
