@@ -1,5 +1,3 @@
-// services/token.service.js
-
 import { ref, readonly, provide, inject } from 'vue'
 
 const authKey = Symbol('auth')
@@ -22,6 +20,12 @@ export function createAuth() {
   }
 
   const setAuth = (status, user, abilities = null) => {
+    // If user is already authenticated, perform logout instead
+    if (isAuthenticated.value) {
+      logout()
+      return
+    }
+    
     isAuthenticated.value = status
     currentUser.value = user
     

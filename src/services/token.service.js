@@ -1,91 +1,81 @@
-import { ref, computed } from 'vue'
+// services/token.service.js
+import { ref, readonly, provide, inject } from 'vue'
 
-const TOKEN_KEY = 'auth_token'
-const USER_KEY = 'user_data'
+const authKey = Symbol('auth')
 
-// Reactive state
-const isAuthenticated = ref(false)
-const currentUser = ref(null)
-const userRole = ref(null)
+export function createAuth() {
+  const isAuthenticated = ref(false)
+  const currentUser = ref(null)
+  const userAbilities = ref({})
+  const isAdmin = ref(false)
 
-// Initialize the authentication state from localStorage on service creation
-function initAuth() {
-  const token = localStorage.getItem(TOKEN_KEY)
-  const userData = localStorage.getItem(USER_KEY)
-  
-  if (token && userData) {
-    isAuthenticated.value = true
-    try {
+  // Check localStorage on initialization
+  const initialize = () => {
+    const token = localStorage.getItem('auth-token')
+    const userData = localStorage.getItem('user')
+    
+    if (token && userData) {
       const user = JSON.parse(userData)
-      currentUser.value = user
-      userRole.value = user.role || 'customer'
-    } catch (e) {
-      console.error('Failed to parse user data:', e)
-      logout() // Clear invalid data
+      setAuth(true, user)
     }
   }
-}
 
-// Login function
-function login(token, user) {
-  localStorage.setItem(TOKEN_KEY, token)
-  localStorage.setItem(USER_KEY, JSON.stringify(user))
-  isAuthenticated.value = true
-  currentUser.value = user
-  userRole.value = user.role || 'customer'
-}
+  const setAuth = (status, user, abilities = null) => {
+    isAuthenticated.value = status
+    currentUser.value = user
+    
+    if (abilities) {
+      userAbilities.value = abilities
+    }
+    
+    // Check if user has admin role
+    if (user && user.role) {
+      isAdmin.value = user.role.slug === 'admin'
+    }
+  }
 
-// Logout function
-function logout() {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(USER_KEY)
-  isAuthenticated.value = false
-  currentUser.value = null
-  userRole.value = null
-}
+  const logout = () => {
+    localStorage.removeItem('auth-token')
+    localStorage.removeItem('user')
+    isAuthenticated.value = false
+    currentUser.value = null
+    userAbilities.value = {}
+    isAdmin.value = false
+  }
 
-// Get the current token
-function getToken() {
-  return localStorage.getItem(TOKEN_KEY)
-}
+  // Toggle function to handle login/logout
+  const toggleAuth = () => {
+    if (isAuthenticated.value) {
+      logout()
+    } else {
+      // Redirect to login page or open login modal
+      // This part would depend on your app's routing/structure
+    }
+  }
 
-// Remove token
-function removeToken() {
-  localStorage.removeItem(TOKEN_KEY)
-}
+  initialize()
 
-// Check if the user has a specific role
-function hasRole(role) {
-  return userRole.value === role
-}
-
-// Check if the user has admin access
-const isAdmin = computed(() => {
-  return userRole.value === 'admin' || userRole.value === 'manager'
-})
-
-// Initialize auth state
-initAuth()
-
-// Export as a composable function
-export const useAuth = () => {
   return {
-    isAuthenticated,
-    currentUser,
-    userRole,
-    isAdmin,
-    login,
+    isAuthenticated: readonly(isAuthenticated),
+    currentUser: readonly(currentUser),
+    userAbilities: readonly(userAbilities),
+    isAdmin: readonly(isAdmin),
+    setAuth,
     logout,
-    getToken,
-    removeToken, // Added this function export
-    hasRole
+    toggleAuth
   }
 }
 
-// Export individual functions for direct use if needed
-export const TokenService = {
-  getToken,
-  removeToken,
-  login,
-  logout
+export function provideAuth() {
+  const auth = createAuth()
+  provide(authKey, auth)
+  return auth
+}
+
+export function useAuth() {
+  const auth = inject(authKey)
+  if (!auth) {
+    throw new Error('Auth was not provided')
+  }
+  return auth
 }
