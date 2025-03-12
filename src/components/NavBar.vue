@@ -59,12 +59,24 @@
         </v-list-item>
       </v-list>
     </v-menu>
+    
+    <!-- Add logout button if authenticated -->
+    <v-btn 
+      v-if="isAuthenticated" 
+      text 
+      @click="handleLogout"
+      class="ml-2"
+    >
+      <v-icon left>mdi-logout</v-icon>
+      <span>Logout</span>
+    </v-btn>
   </v-app-bar>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useAuth } from '../services/token.service'
+import { ref, computed, onMounted } from 'vue'
+import { useAuth } from '../services/auth.service'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   hideForUnauthenticated: {
@@ -74,9 +86,15 @@ const props = defineProps({
 })
 
 const drawer = ref(true)
+const router = useRouter()
 
 // Use the authentication service
-const { isAuthenticated, currentUser, isAdmin } = useAuth()
+const { isAuthenticated, currentUser, isAdmin, logout, loadUserInfo } = useAuth()
+
+// Load user info on component mount
+onMounted(async () => {
+  await loadUserInfo()
+})
 
 // Computed properties for user info
 const userName = computed(() => {
@@ -88,6 +106,12 @@ const userAvatar = computed(() => {
     ? currentUser.value.user_photo
     : 'https://picsum.photos/1920/1080?random'
 })
+
+// Handle logout
+function handleLogout() {
+  logout()
+  router.push('/login')
+}
 
 // Define all possible navigation paths with required roles
 const allPaths = [

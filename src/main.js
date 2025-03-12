@@ -1,5 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+//colors
+import { useColorsStore} from './stores/colors';
 
 import App from './App.vue'
 import router from './router'
@@ -20,6 +22,7 @@ const vuetify = createVuetify({
   })
 
 app.use(createPinia())
+app.config.globalProperties.$colorStore = useColorsStore.footerColor;
 app.use(router)
 app.use(vuetify)
 app.mount('#app')
