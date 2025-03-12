@@ -84,8 +84,8 @@
      
     <script>
     import { ref, computed, onMounted } from 'vue';
-    import { useLocationsStore } from '../store/locations';
-    import { useColorsStore } from '../store/colors';
+    import { useLocationsStore } from '../stores/locations';
+    import { useColorsStore } from '../stores/colors';
     
     export default {
       setup() {

@@ -6,13 +6,14 @@ import ContactUsView from '../views/ContactUsView.vue'
 import LoginPage from '../views/LoginPage.vue'
 import SignUpPage from '../views/SignUp.vue'
 import WelcomePage from '../views/WelcomePage.vue'
+import LocationPage from '../views/LocationPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
+      name: 'Home',
       component: HomeView
     },
     {
@@ -44,6 +45,11 @@ const router = createRouter({
       path: '/welcome',
       name: 'Welcome',
       component: WelcomePage
+    },
+    {
+      path: '/location',
+      name: 'Location',
+      component: LocationPage
     }
   ]
 })

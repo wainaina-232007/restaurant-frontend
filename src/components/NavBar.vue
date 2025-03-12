@@ -126,6 +126,9 @@ const allPaths = [
   { icon: 'mdi-account', text: 'My Profile', route: '/profile', requiresAuth: true },
 
   // Customer paths
+  { icon: 'mdi-map', text: 'Locations', route: '/location', requiresAuth: true },
+
+  // Customer paths
   { icon: 'mdi-food', text: 'Menu', route: '/menu', requiresAuth: true },
   { icon: 'mdi-cart', text: 'My Orders', route: '/orders', requiresAuth: true },
 
