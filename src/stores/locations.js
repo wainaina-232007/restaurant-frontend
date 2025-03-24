@@ -2,104 +2,121 @@
 import { defineStore } from 'pinia';
 import api from '../services/api';
 
-export const useLocationsStore = defineStore({
-  id: 'locations',
+export const useLocationsStore = defineStore('locations', {
   state: () => ({
     locations: [],
-    snackbarCreate: false,
-    snackbarUpdate: false,
-    snackbarDelete: false,
-    // snackbarTimeout: 3000,
     dialog: false,
     dialogDelete: false,
-    // toolbarColor: 'info',
     editedIndex: -1,
     editedItem: {
       id: '',
       name: '',
+      areaCode: '',
     },
     defaultItem: {
       id: '',
       name: '',
+      areaCode: '',
     },
-    itemToDelete: '',
+    itemToDelete: null,
   }),
-
   actions: {
     async fetchLocations() {
       try {
         const response = await api.get('location');
-        this.locations = response.data;
+        // Transform the data to include a key property for v-data-table actions
+        this.locations = response.data.map(location => ({
+          ...location,
+          key: location.id
+        }));
       } catch (error) {
         console.error('Error fetching locations', error);
       }
     },
-
+    
     async createLocation(location) {
       try {
         const response = await api.post('location', location);
-        this.locations.push(response.data);
-        this.snackbarCreate = true;        
+        // Add key property for v-data-table actions
+        const newLocation = { ...response.data, key: response.data.id };
+        this.locations.push(newLocation);
+        return true;
       } catch (error) {
         console.error('Error creating location', error);
+        return false;
       }
     },
-
+    
     async updateLocation(location) {
       try {
         await api.put(`location/${location.id}`, location);
-        const index = this.locations.findIndex((s) => s.id === location.id);
+        const index = this.locations.findIndex((loc) => loc.id === location.id);
         if (index !== -1) {
-          this.locations[index] = location;
+          // Preserve the key property
+          const key = this.locations[index].key;
+          this.locations[index] = { ...location, key };
         }
-        this.snackbarUpdate = true;        
+        return true;
       } catch (error) {
         console.error('Error updating location', error);
+        return false;
       }
     },
-
-    deleteLocation(item) {
-      this.editedIndex = item;
-      this.itemToDelete = item;
+    
+    deleteLocation(id) {
+      this.itemToDelete = id;
       this.dialogDelete = true;
     },
-
+    
     async deleteLocationConfirm() {
       try {
         await api.delete(`location/${this.itemToDelete}`);
-        this.locations = this.locations.filter((s) => s.id !== this.itemToDelete);        
+        this.locations = this.locations.filter((loc) => loc.id !== this.itemToDelete);
+        return true;
       } catch (error) {
         console.error('Error deleting location', error);
+        return false;
+      } finally {
+        this.closeDelete();
       }
-      this.closeDelete();
     },
-
+    
     openDialog() {
-        this.editedIndex = -1; 
-        this.editedItem = { id: '', name: '' };    
-        this.dialog = true;   
-      },
-
-    async editItem(item) {
+      this.editedIndex = -1;
+      this.editedItem = { ...this.defaultItem };
+      this.dialog = true;
+    },
+    
+    async editItem(id) {
       try {
-        console.log("Item to edit is ", item);
-        const response = await api.get(`location/${item}`);
-        this.editedIndex = item;
-        this.editedItem = response.data;
+        console.log("Item to edit is ", id);
+        const response = await api.get(`location/${id}`);
+        this.editedIndex = this.locations.findIndex(loc => loc.id === id);
+        this.editedItem = { ...response.data };
         this.dialog = true;
       } catch (error) {
         console.error('Error fetching item for pre-update', error);
       }
     },
-
+    
     close() {
       this.dialog = false;
+      // Reset the edited item after closing the dialog
+      setTimeout(() => {
+        this.editedItem = { ...this.defaultItem };
+        this.editedIndex = -1;
+      }, 0);
     },
     
     closeDelete() {
       this.dialogDelete = false;
+      setTimeout(() => {
+        this.itemToDelete = null;
+      }, 0);
     },
     
-    
+    initialize() {
+      this.fetchLocations();
+    }
   },
 });
