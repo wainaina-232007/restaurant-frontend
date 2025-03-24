@@ -1,4 +1,4 @@
-<template>
+ <template>
   <v-main>
     <v-container fluid fill-height class="login-background">
       <v-row justify="center">
